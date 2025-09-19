@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coding</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+    }
+    header {
+      width: 100%;
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      margin-left: 20px;
+      font-size: 26px;
+    }
+    #adminBtn {
+      background: #ff9800;
+      border: none;
+      padding: 10px 18px;
+      font-size: 18px;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 6px;
+      margin-right: 50px;
+    }
+    #content {
+      padding: 30px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    #copyMsg {
+      color: green;
+      font-weight: bold;
+      display: none;
+    }
+    #copyBtn {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #copyBtn:hover {
+      background: #1976D2;
+    }
+    .main-area {
+      display: flex;
+      gap: 20px;
+    }
+    #display {
+      flex: 2;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      min-height: 300px;
+      font-size: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-y: auto;
+      max-height: 80vh;
+    }
+    #adminPanel {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+    #adminPanel textarea {
+      width: 100%;
+      height: 200px;
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    #adminPanel button {
+      margin-top: 10px;
+      padding: 10px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #sendBtn {
+      background: #4CAF50;
+      color: white;
+      margin-right: 10px;
+    }
+    #deleteBtn {
+      background: #e53935;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Coding</h1>
+    <button id="adminBtn">Admin</button>
+  </header>
+
+  <div id="content">
+    <div class="top-bar">
+      <div id="copyMsg">Copied!</div>
+      <button id="copyBtn">Copy</button>
+    </div>
+    <div class="main-area">
+      <div id="display">Loading...</div>
+      <div id="adminPanel">
+        <textarea id="textInput" placeholder="Type your text here..."></textarea>
+        <button id="sendBtn">Send</button>
+        <button id="deleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJFmFo_v402cGhgJh597mYTfQYaMFyW18",
+      authDomain: "programming-ff502.firebaseapp.com",
+      databaseURL: "https://programming-ff502-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "programming-ff502",
+      storageBucket: "programming-ff502.firebasestorage.app",
+      messagingSenderId: "870645705395",
+      appId: "1:870645705395:web:10b65dd5f2f86eca939ec6",
+      measurementId: "G-D7FPDW7DJ9"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const display = document.getElementById("display");
+    const adminBtn = document.getElementById("adminBtn");
+    const adminPanel = document.getElementById("adminPanel");
+    const textInput = document.getElementById("textInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const copyMsg = document.getElementById("copyMsg");
+
+    // Show admin panel if password correct
+    adminBtn.addEventListener("click", () => {
+      const pass = prompt("Enter admin password:");
+      if (pass === "1234") {
+        adminPanel.style.display = "flex";
+      } else {
+        alert("Wrong password!");
+      }
+    });
+
+    // Send new text
+    sendBtn.addEventListener("click", () => {
+      const text = textInput.value;
+      if (text.trim() !== "") {
+        db.ref("sharedText").set({
+          message: text,
+          timestamp: Date.now()
+        });
+        textInput.value = "";
+      }
+    });
+
+    // Delete text manually
+    deleteBtn.addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete the text?")) {
+        db.ref("sharedText").remove();
+      }
+    });
+
+    // Copy text
+    copyBtn.addEventListener("click", () => {
+      const text = display.textContent;
+      if (text && text !== "No text available.") {
+        navigator.clipboard.writeText(text).then(() => {
+          copyMsg.style.display = "block";
+          setTimeout(() => {
+            copyMsg.style.display = "none";
+          }, 2000);
+        });
+      }
+    });
+
+    // Listen for text updates
+    db.ref("sharedText").on("value", snapshot => {
+      const data = snapshot.val();
+      if (data) {
+        display.textContent = data.message;
+      } else {
+        display.textContent = "No text available.";
+      }
+    });
+
+    // Auto delete after 1h 20m
+    db.ref("sharedText").on("value", snapshot => {
+      const data = snapshot.val();
+      if (data && data.timestamp) {
+        const now = Date.now();
+        const expireTime = 80 * 60 * 1000;
+        if (now - data.timestamp > expireTime) {
+          db.ref("sharedText").remove();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
