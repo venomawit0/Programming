@@ -24,7 +24,7 @@
       margin-left: 20px;
       font-size: 26px;
     }
-    #adminBtn {
+    #adminBtn, #chatBtn {
       background: #ff9800;
       border: none;
       padding: 10px 18px;
@@ -32,7 +32,7 @@
       color: #fff;
       cursor: pointer;
       border-radius: 6px;
-      margin-right: 50px;
+      margin-right: 20px;
     }
     #content {
       padding: 30px;
@@ -79,7 +79,7 @@
       overflow-y: auto;
       max-height: 80vh;
     }
-    #adminPanel {
+    #adminPanel, #chatPanel {
       flex: 1;
       display: none;
       flex-direction: column;
@@ -93,7 +93,7 @@
       border: 1px solid #ccc;
       resize: vertical;
     }
-    #adminPanel button {
+    #adminPanel button, #chatPanel button {
       margin-top: 10px;
       padding: 10px 16px;
       font-size: 16px;
@@ -110,12 +110,39 @@
       background: #e53935;
       color: white;
     }
+    /* Chat styles */
+    #chatMessages {
+      flex: 1;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      height: 250px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    #chatMessages div {
+      margin-bottom: 5px;
+    }
+    #chatInput {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    #sendChatBtn {
+      background: #4CAF50;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Coding</h1>
-    <button id="adminBtn">Admin</button>
+    <div>
+      <button id="chatBtn">Chat</button>
+      <button id="adminBtn">Admin</button>
+    </div>
   </header>
 
   <div id="content">
@@ -129,6 +156,11 @@
         <textarea id="textInput" placeholder="Type your text here..."></textarea>
         <button id="sendBtn">Send</button>
         <button id="deleteBtn">Delete</button>
+      </div>
+      <div id="chatPanel">
+        <div id="chatMessages"></div>
+        <input type="text" id="chatInput" placeholder="Type a message..."/>
+        <button id="sendChatBtn">Send</button>
       </div>
     </div>
   </div>
@@ -161,13 +193,32 @@
     const copyBtn = document.getElementById("copyBtn");
     const copyMsg = document.getElementById("copyMsg");
 
+    const chatBtn = document.getElementById("chatBtn");
+    const chatPanel = document.getElementById("chatPanel");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const sendChatBtn = document.getElementById("sendChatBtn");
+
+    let userName = null;
+
     // Show admin panel if password correct
     adminBtn.addEventListener("click", () => {
       const pass = prompt("Enter admin password:");
-      if (pass === "1234") {
+      if (pass === "111") {
         adminPanel.style.display = "flex";
+        chatPanel.style.display = "none";
       } else {
         alert("Wrong password!");
+      }
+    });
+
+    // Show chat panel
+    chatBtn.addEventListener("click", () => {
+      adminPanel.style.display = "none";
+      chatPanel.style.display = "flex";
+      if (!userName) {
+        userName = prompt("Enter your name:");
+        if (!userName) userName = "Guest";
       }
     });
 
@@ -222,6 +273,51 @@
         if (now - data.timestamp > expireTime) {
           db.ref("sharedText").remove();
         }
+      }
+    });
+
+    // Send chat message
+    sendChatBtn.addEventListener("click", () => {
+      const text = chatInput.value;
+      if (text.trim() !== "") {
+        const msgRef = db.ref("chat").push();
+        msgRef.set({
+          name: userName,
+          text: text,
+          timestamp: Date.now()
+        });
+        chatInput.value = "";
+      }
+    });
+
+    // Listen for chat updates
+    db.ref("chat").on("child_added", snapshot => {
+      const data = snapshot.val();
+      if (data) {
+        const msgDiv = document.createElement("div");
+        msgDiv.innerHTML = "<strong>" + data.name + ":</strong> " + data.text;
+        msgDiv.id = snapshot.key;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+
+    // Auto delete chat messages after 5 seconds
+    db.ref("chat").on("child_added", snapshot => {
+      const key = snapshot.key;
+      const data = snapshot.val();
+      if (data && data.timestamp) {
+        setTimeout(() => {
+          db.ref("chat/" + key).remove();
+        }, 5000);
+      }
+    });
+
+    // Remove from DOM when deleted
+    db.ref("chat").on("child_removed", snapshot => {
+      const msgDiv = document.getElementById(snapshot.key);
+      if (msgDiv) {
+        msgDiv.remove();
       }
     });
   </script>
