@@ -66,19 +66,35 @@
       display: flex;
       gap: 20px;
     }
-    #display {
+
+    /* Code display with line numbers */
+    .code-container {
       flex: 2;
+      display: flex;
       background: #fff;
-      padding: 20px;
       border-radius: 10px;
-      min-height: 300px;
-      font-size: 20px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      font-size: 16px;
+      font-family: monospace;
+      max-height: 80vh;
+      overflow: auto;
+      min-height: 300px;
+    }
+    .line-numbers {
+      background: #f0f0f0;
+      color: #888;
+      padding: 10px;
+      text-align: right;
+      user-select: none;
+      border-right: 1px solid #ddd;
+    }
+    .code-content {
+      padding: 10px;
       white-space: pre-wrap;
       word-wrap: break-word;
-      overflow-y: auto;
-      max-height: 80vh;
+      flex: 1;
     }
+
     #adminPanel, #chatPanel {
       flex: 1;
       display: none;
@@ -120,6 +136,8 @@
       height: 250px;
       overflow-y: auto;
       margin-bottom: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
     }
     #chatMessages div {
       margin-bottom: 5px;
@@ -151,7 +169,12 @@
       <button id="copyBtn">Copy</button>
     </div>
     <div class="main-area">
-      <div id="display">Loading...</div>
+      <!-- Code display with line numbers -->
+      <div class="code-container">
+        <div id="lineNumbers" class="line-numbers"></div>
+        <div id="display" class="code-content">Loading...</div>
+      </div>
+
       <div id="adminPanel">
         <textarea id="textInput" placeholder="Type your text here..."></textarea>
         <button id="sendBtn">Send</button>
@@ -185,6 +208,7 @@
     const db = firebase.database();
 
     const display = document.getElementById("display");
+    const lineNumbers = document.getElementById("lineNumbers");
     const adminBtn = document.getElementById("adminBtn");
     const adminPanel = document.getElementById("adminPanel");
     const textInput = document.getElementById("textInput");
@@ -254,13 +278,23 @@
       }
     });
 
-    // Listen for text updates
+    // Listen for text updates + add line numbers
     db.ref("sharedText").on("value", snapshot => {
       const data = snapshot.val();
       if (data) {
-        display.textContent = data.message;
+        const text = data.message;
+        display.textContent = text;
+
+        // Add line numbers
+        const lines = text.split("\n").length;
+        let lineNumbersHTML = "";
+        for (let i = 1; i <= lines; i++) {
+          lineNumbersHTML += i + "<br>";
+        }
+        lineNumbers.innerHTML = lineNumbersHTML;
       } else {
         display.textContent = "No text available.";
+        lineNumbers.textContent = "";
       }
     });
 
